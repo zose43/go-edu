@@ -25,6 +25,7 @@ func dupWithFiles(counts map[string]int) {
 			f, err := os.Open(arg)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "dumpWithFiles %v\n", f)
+				continue
 			}
 
 			countLines(f, counts)
