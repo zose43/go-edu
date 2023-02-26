@@ -7,7 +7,6 @@ import (
 )
 
 func main() {
-	2
 	counts := make(map[string]int)
 	dupWithFiles(counts)
 }
