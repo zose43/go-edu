@@ -17,7 +17,7 @@ func main() {
 	fmt.Printf("{0,4} %08b\n", x>>1)
 	for i := uint(0); i < 8; i++ {
 		if x&(1<<i) != 0 {
-			fmt.Printf("%d %#[1]o %#[1]X\n",i)
+			fmt.Printf("%d %#[1]o %#[1]X\n", i)
 		}
 	}
 }
