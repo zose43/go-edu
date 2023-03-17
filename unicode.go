@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"unicode/utf8"
+)
 
 func main() {
 	prefix := "sp-"
@@ -9,6 +12,12 @@ func main() {
 	s1 := "world_and_peace.jpeg"
 	fmt.Println(hasPrefix(s, prefix))
 	fmt.Println(hasSuffix(s1, suffix))
+
+	jps := "hello, ミスター"
+	fmt.Printf("utf-8 %d, usually %d\n", utf8.RuneCountInString(jps), len(s))
+	for i, r := range jps {
+		fmt.Printf("%d\t%q\t%d\n", i, r, r)
+	}
 }
 
 func hasPrefix(s, prefix string) bool {
