@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Flags uint
 
@@ -10,6 +12,30 @@ const (
 	FlagLoopback
 	FlagPointToPoint
 	FlagMultiCast
+)
+
+const (
+	_ = 1 << (10 * iota)
+	KiB
+	MiB
+	GiB
+	TiB	// overhead int32 (1 << 32)
+	PiB
+	EiB
+	ZiB	// overhead in64 (1 << 64)
+	Yib
+)
+
+const (
+	KB = 1000
+	MB=1000 * 1000
+	GB= 1000*1000*1000
+	TB= 1000*1000*1000*1000
+	PB=1000*1000*1000*1000*1000
+	EB=1000*1000*1000*1000*1000*1000
+	ZB=1000*1000*1000*1000*1000*1000*1000
+	YB=1000*1000*1000*1000*1000*1000*1000*1000
+
 )
 
 func main() {
