@@ -12,6 +12,7 @@ func init() {
 }
 
 func PopCount(x uint64) int {
+	// matrix 8x8
 	r := byte(0)
 	for i := 0; i <= 7; i++ {
 		r += pc[byte(x>>(8*i))]
