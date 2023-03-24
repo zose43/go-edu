@@ -7,7 +7,17 @@ import (
 	"sort"
 )
 
+var m = map[string]int{}
+
 func main() {
+	var s1, s2, s3 = []string{"Liza", "Kirill", "Olga"}, []string{"Kirill", "Liza", "Olga"}, []string{"Olga", "Kirill", "Liza"}
+	add(s1)
+	add(s2)
+	add(s3)
+	add(s2)
+	for k, v := range m {
+		fmt.Printf("%s\t%d\n", k, v)
+	}
 	ages := map[string]int{
 		"Lisaveta": 16,
 		"Olga":     49,
@@ -56,7 +66,19 @@ func dedup() {
 	if err := input.Err(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 	}
-	for name:= range set{
-		fmt.Printf("*%s\n",name)
+	for name := range set {
+		fmt.Printf("*%s\n", name)
 	}
+}
+
+func transform(s []string) string {
+	return fmt.Sprintf("%q", s)
+}
+
+func add(s []string) {
+	m[transform(s)]++
+}
+
+func all(s []string) int {
+	return m[transform(s)]
 }
