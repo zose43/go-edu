@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"sort"
 )
 
@@ -18,6 +20,7 @@ func main() {
 		"Vladimir": 52,
 		"Kirill":   28,
 	}
+	dedup()
 	fmt.Println(equal(ages2, ages))
 	names := make([]string, 0, len(ages))
 	for name := range ages {
@@ -39,4 +42,21 @@ func equal(x, y map[string]int) bool {
 		}
 	}
 	return true
+}
+
+func dedup() {
+	set := make(map[string]bool)
+	input := bufio.NewScanner(os.Stdin)
+	for input.Scan() {
+		text := input.Text()
+		if !set[text] {
+			set[text] = true
+		}
+	}
+	if err := input.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+	}
+	for name:= range set{
+		fmt.Printf("*%s\n",name)
+	}
 }
