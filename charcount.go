@@ -23,6 +23,7 @@ func main() {
 		}
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "charcount %v\n", err)
+			os.Exit(1)
 		}
 		if s == 1 && r == unicode.ReplacementChar {
 			invalid++
