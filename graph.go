@@ -5,12 +5,12 @@ import "fmt"
 var graph = map[string]map[string]bool{}
 
 func main() {
-	addEdge("Kirov","Moscow")
-	addEdge("Kirov","Saint-Petersburg")
-	addEdge("Minsk","London")
-	fmt.Println(hasEdge("Minsk","London"))
-	fmt.Println(hasEdge("Minsk","Kirov"))
-	fmt.Println(hasEdge("Samara","Kirov"))
+	addEdge("Kirov", "Moscow")
+	addEdge("Kirov", "Saint-Petersburg")
+	addEdge("Minsk", "London")
+	fmt.Println(hasEdge("Minsk", "London"))
+	fmt.Println(hasEdge("Minsk", "Kirov"))
+	fmt.Println(hasEdge("Samara", "Kirov"))
 }
 
 func addEdge(from, to string) {
