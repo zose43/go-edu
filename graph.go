@@ -10,6 +10,7 @@ func main() {
 	addEdge("Minsk","London")
 	fmt.Println(hasEdge("Minsk","London"))
 	fmt.Println(hasEdge("Minsk","Kirov"))
+	fmt.Println(hasEdge("Samara","Kirov"))
 }
 
 func addEdge(from, to string) {
