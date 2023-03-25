@@ -9,6 +9,8 @@ import (
 	"unicode/utf8"
 )
 
+var utype = make(map[string]int)
+
 func main() {
 	count := make(map[rune]int)
 	var utflen [utf8.UTFMax + 1]int
@@ -26,6 +28,7 @@ func main() {
 			invalid++
 			continue
 		}
+		defineType(r)
 		count[r]++
 		utflen[s]++
 	}
@@ -38,7 +41,25 @@ func main() {
 			fmt.Printf("len=%d\tcount=%d\n", n, count)
 		}
 	}
+	for t, c := range utype {
+		fmt.Printf("%s\t%d\n", t, c)
+	}
 	if invalid > 0 {
 		fmt.Printf("Invalid utf-8 symbols: %d\n", invalid)
+	}
+}
+
+func defineType(r rune) {
+	if unicode.IsLetter(r) {
+		utype["Letter"]++
+	}
+	if unicode.IsNumber(r) {
+		utype["Number"]++
+	}
+	if unicode.IsSpace(r) {
+		utype["Space"]++
+	}
+	if unicode.IsPunct(r) {
+		utype["Punctuational"]++
 	}
 }
