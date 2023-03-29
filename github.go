@@ -40,7 +40,7 @@ func main() {
 	}
 	fmt.Printf("Themes: %d\n", result.TotalCount)
 	for _, item := range result.Items {
-		fmt.Printf("#%-5d %9.9s %.55s", item.Number, item.User.Login, item.Title)
+		fmt.Printf("#%-5d %9.9s %.55s\n", item.Number, item.User.Login, item.Title)
 	}
 }
 
