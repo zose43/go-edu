@@ -34,13 +34,27 @@ type User struct {
 }
 
 func main() {
+	seasonsCat := make(map[string][]*Issue)
 	result, err := SearchIssues(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("Themes: %d\n", result.TotalCount)
 	for _, item := range result.Items {
-		fmt.Printf("#%-5d %-9.9s %.55s\n", item.Number, item.User.Login, item.Title)
+		if item.CreatedAt.After(time.Now().AddDate(0, 0, -30)) {
+			seasonsCat["month"] = append(seasonsCat["month"], item)
+		}
+		if item.CreatedAt.Year() == time.Now().Year() {
+			seasonsCat["year"] = append(seasonsCat["year"], item)
+		}
+		if item.CreatedAt.After(time.Now().AddDate(0, -6, 0)) {
+			seasonsCat["half-year"] = append(seasonsCat["half-year"], item)
+		}
+	}
+	for cat, items := range seasonsCat {
+		for _, item := range items {
+			fmt.Printf("#%-5d %-10.10s %-9.9s %.55s\n", item.Number, cat, item.User.Login, item.Title)
+		}
 	}
 }
 
