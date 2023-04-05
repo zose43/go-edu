@@ -2,3 +2,4 @@
 files
 src
 bin
+.env
