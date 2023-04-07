@@ -12,11 +12,11 @@ import (
 )
 
 type Resp struct {
-	Month string
 	Id    int `json:"num"`
 	Year  string
 	Title string
 	Img   string
+	Url   string
 }
 
 var data = map[string]Resp{}
@@ -31,7 +31,7 @@ func main() {
 	if story, ok := data[t]; !ok {
 		fmt.Printf("%s not in lists", t)
 	} else {
-		fmt.Printf("#%d %s %s %s", story.Id, story.Year, story.Title, story.Month)
+		fmt.Printf("#%d %s %s %s", story.Id, story.Year, story.Title, story.Url)
 	}
 }
 
@@ -40,6 +40,7 @@ func init() {
 	for {
 		url := "https://xkcd.com/" + strconv.Itoa(i) + "/info.0.json"
 		b := new(Resp)
+		b.Url = strings.ReplaceAll(url, "info.0.json", "")
 		resp, err := http.Get(url)
 		if err != nil {
 			fmt.Printf("Invalid resp:%v\n", err)
