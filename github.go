@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	html "html/template"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -34,27 +36,61 @@ type User struct {
 }
 
 func main() {
-	seasonsCat := make(map[string][]*Issue)
 	result, err := SearchIssues(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Themes: %d\n", result.TotalCount)
-	for _, item := range result.Items {
-		if item.CreatedAt.After(time.Now().AddDate(0, 0, -30)) {
-			seasonsCat["month"] = append(seasonsCat["month"], item)
-		}
-		if item.CreatedAt.Year() == time.Now().Year() {
-			seasonsCat["year"] = append(seasonsCat["year"], item)
-		}
-		if item.CreatedAt.After(time.Now().AddDate(0, -6, 0)) {
-			seasonsCat["half-year"] = append(seasonsCat["half-year"], item)
-		}
+	renderHTML(result)
+	templ := reportTemplate()
+	report := template.Must(
+		template.New("github_issues").Funcs(template.FuncMap{"daysAgo": daysAgo}).Parse(templ),
+	)
+	if err := report.Execute(os.Stdout, result); err != nil {
+		log.Fatal(err)
 	}
-	for cat, items := range seasonsCat {
-		for _, item := range items {
-			fmt.Printf("#%-5d %-10.10s %-9.9s %.55s\n", item.Number, cat, item.User.Login, item.Title)
-		}
+}
+
+func reportTemplate() string {
+	return `{{.TotalCount}} themes
+{{range .Items}}--------------------
+Number: {{.Number}}
+User: {{.User.Login}}
+Title: {{.Title | printf "%.64s"}}
+Age: {{.CreatedAt | daysAgo}} days
+{{end}}`
+}
+
+func daysAgo(t time.Time) int {
+	return int(time.Since(t).Hours() / 24)
+}
+
+func renderHTML(res *IssuesSearchResult) {
+	f, err := os.Create("github_issue.html")
+	defer f.Close()
+	doc := html.Must(
+		html.New("github_issues_html").Funcs(html.FuncMap{"daysAgo": daysAgo}).Parse(`
+<h1>{{.TotalCount}}</h1>
+<table>
+<tr style='text-align: left'>
+<th>#</th>
+<th>State</th>
+<th>User</th>
+<th>Title</th>
+<th>Age</th>
+</tr>
+{{range .Items}}
+<tr>
+<td><a href='{{.HTMLURL}}'>{{.Number}}</a></td>
+<td>{{.State}}</td>
+<td>{{.User.Login}}</td>
+<td>{{.Title}}</td>
+<td>{{.CreatedAt | daysAgo}} days</td>
+</tr>
+{{end}}
+</table>`),
+	)
+	if err = doc.Execute(f, res); err != nil {
+		fmt.Printf("HTML document not created, %s\n", err)
 	}
 }
 
