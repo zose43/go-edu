@@ -16,9 +16,9 @@ type Poster struct {
 	Title    string
 	Year     string
 	Writer   string
-	Runtime  string    `json:"runtime,omitempty"`
+	Runtime  string `json:"runtime,omitempty"`
 	Released string `json:"released,omitempty"`
-	Rate     string   `json:"imdbRating,omitempty"`
+	Rate     string `json:"imdbRating,omitempty"`
 	Poster   string
 }
 

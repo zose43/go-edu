@@ -1,8 +1,8 @@
 package main
 
 import (
-	pCount "./popCount"
 	"fmt"
+	pCount "zose43/go-edu/popCount"
 )
 
 func main() {

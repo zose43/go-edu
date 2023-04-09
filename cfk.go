@@ -1,10 +1,10 @@
 package main
 
 import (
-	Tconv "./tempconv"
 	"fmt"
 	"os"
 	"strconv"
+	Tconv "zose43/go-edu/tempconv"
 )
 
 func main() {
