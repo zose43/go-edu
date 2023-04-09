@@ -1,12 +1,10 @@
-package github
+package gitIssues
 
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 )
@@ -18,12 +16,19 @@ type IssuesSearchResult struct {
 	Items      []*Issue
 }
 
+type Label struct {
+	Name  string
+	Descr string `json:"description,omitempty"`
+	Id int
+}
+
 type Issue struct {
 	Number    int
 	HTMLURL   string `json:"html_url"`
 	Title     string
 	State     string
 	User      *User
+	Labels    []*Label
 	CreatedAt time.Time `json:"created_at"`
 	Body      string
 }
@@ -31,19 +36,12 @@ type Issue struct {
 type User struct {
 	Login   string
 	HTMLURL string `json:"html_url"`
+	Ava     string `json:"avatar_url,omitempty"`
+	Id int
 }
 
-func main() {
-	result, err := SearchIssues(os.Args[1:])
-	if err != nil {
-		log.Fatal(err)
-	}
-	renderHTML(result)
-	renderTemplate(result)
-}
-
-func daysAgo(t time.Time) int {
-	return int(time.Since(t).Hours() / 24)
+func (i *Issue) DaysAgo() int {
+	return int(time.Since(i.CreatedAt).Hours() / 24)
 }
 
 func SearchIssues(terms []string) (*IssuesSearchResult, error) {

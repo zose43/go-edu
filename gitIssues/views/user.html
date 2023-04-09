@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User</title>
+</head>
+<body>
+<h1>User</h1>
+<table>
+  <tr style='text-align: left'>
+    <th>#</th>
+    <th>Login</th>
+    <th>Title</th>
+    <th>Ava</th>
+  </tr>
+  <tr>
+    <td>{{.User.Id}}</td>
+    <td><a href='{{.User.HTMLURL}}'>{{.User.Login | printf "%.6s"}}</a></td>
+    <td><img src="{{.User.Ava}}" alt="Ava"></td>
+  </tr>
+</table>
+</body>
+</html>
