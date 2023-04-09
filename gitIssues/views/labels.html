@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Labels</title>
+</head>
+<body>
+<h1>Labels</h1>
+<table>
+  <tr style='text-align: left'>
+    <th>#</th>
+    <th>Name</th>
+    <th>Descr</th>
+  </tr>
+  {{range .Labels}}
+  <tr>
+    <td>{{.Id}}</td>
+    <td>{{.Name | printf "%.5s"}}</td>
+    <td>{{.Descr | printf "%.32s"}}</td>
+  </tr>
+  {{end}}
+</table>
+</body>
+</html>
