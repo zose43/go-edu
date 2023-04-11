@@ -21,7 +21,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		io.Copy(os.Stdout, resp.Body)
+		_, err = io.Copy(os.Stdout, resp.Body)
 		resp.Body.Close()
 
 		if err != nil {
