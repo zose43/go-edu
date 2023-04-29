@@ -20,7 +20,5 @@ func printStack() {
 func foo(x int) {
 	fmt.Printf("f(%d)\n", x+0/x)
 	defer fmt.Printf("defer %d\n", x)
-	if x > 0 {
-		foo(x - 1)
-	}
+	foo(x - 1)
 }
