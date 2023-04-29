@@ -22,22 +22,46 @@ func title(url string) error {
 		return fmt.Errorf("no done %v", err)
 	}
 	defer resp.Body.Close()
+
 	ct := resp.Header.Get("Content-Type")
 	if ct != "text/html" && !strings.HasPrefix(ct, "text/html;") {
 		return fmt.Errorf("Content-Type not a html/text")
 	}
+
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
 		return err
 	}
-	forEachNode(doc, visitNode, nil)
+
+	if err = soleTitle(doc); err != nil {
+		return fmt.Errorf("url:%s %s", url, err)
+	}
 	return nil
 }
 
-func visitNode(n *html.Node) {
-	if n.Data == "title" && n.FirstChild != nil {
-		fmt.Printf("Title: %s", n.FirstChild.Data)
-	}
+func soleTitle(n *html.Node) (err error) {
+	type bailout struct{}
+	var title string
+	defer func() {
+		switch p := recover(); p {
+		case nil:
+		case bailout{}:
+			err = fmt.Errorf("more than 1 title on page")
+		default:
+			panic(p)
+		}
+	}()
+
+	forEachNode(n, func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "title" && n.FirstChild != nil {
+			if title != "" {
+				panic(bailout{})
+			}
+			title = n.FirstChild.Data
+			fmt.Printf("Title: %s", title)
+		}
+	}, nil)
+	return nil
 }
 
 func forEachNode(n *html.Node, pre, post func(n *html.Node)) {
