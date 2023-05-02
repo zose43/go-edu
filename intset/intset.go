@@ -5,8 +5,23 @@ import (
 	"fmt"
 )
 
+const bitCount = 32 << (^uint(0) >> 63)
+
 type Intset struct {
 	words []uint64
+}
+
+func (s *Intset) tokenize(x int) (int, uint64) {
+	return x / bitCount, uint64(x % bitCount)
+}
+
+func (s *Intset) SymmetricDifference(t *Intset) *Intset {
+	symmDiff := new(Intset)
+	xdiff := s.DifferenceWith(t)
+	ydiff := t.DifferenceWith(s)
+	symmDiff.UnionWith(xdiff)
+	symmDiff.UnionWith(ydiff)
+	return symmDiff
 }
 
 func (s *Intset) convert(index int, word uint64) ([]int, bool) {
@@ -22,16 +37,44 @@ func (s *Intset) convert(index int, word uint64) ([]int, bool) {
 	return res, true
 }
 
-//func (s *Intset) IntersectWith(t *Intset) *Intset {
-//	intrsc := new(Intset)
-//	for i, word := range t.words {
-//		// todo realize
-//	}
-//}
+func (s *Intset) DifferenceWith(t *Intset) *Intset {
+	diff := new(Intset)
+	for i, word := range t.words {
+		if elems, ok := t.convert(i, word); ok {
+			for _, elem := range elems {
+				if !s.Has(elem) {
+					diff.Add(elem)
+				}
+			}
+		}
+	}
+	return diff
+}
+
+func (s *Intset) IntersectWith(t *Intset) *Intset {
+	intrsc := new(Intset)
+	for i, word := range t.words {
+		if elems, ok := t.convert(i, word); ok {
+			for _, elem := range elems {
+				if s.Has(elem) {
+					intrsc.Add(elem)
+				}
+			}
+		}
+	}
+	return intrsc
+}
 
 func (s *Intset) Elems() []int {
-	return []int{}
-	// todo realize
+	var res []int
+	for i, word := range s.words {
+		if elems, ok := s.convert(i, word); ok {
+			for _, elem := range elems {
+				res = append(res, elem)
+			}
+		}
+	}
+	return res
 }
 
 func (s *Intset) AddAll(items ...int) {
@@ -41,7 +84,7 @@ func (s *Intset) AddAll(items ...int) {
 }
 
 func (s *Intset) Remove(x int) {
-	word, bit := x/64, uint64(x%64)
+	word, bit := s.tokenize(x)
 	if s.Has(x) {
 		s.words[word] ^= 1 << uint(bit)
 	}
@@ -63,15 +106,19 @@ func (s *Intset) Len() int {
 
 func (s *Intset) String() string {
 	var buf bytes.Buffer
-	buf.WriteString("{ ")
+	buf.WriteByte('{')
 	for i, word := range s.words {
 		if elems, ok := s.convert(i, word); ok {
-			for _, elem := range elems {
-				buf.WriteString(fmt.Sprintf("%d ", elem))
+			for i, elem := range elems {
+				if i == len(elems)-1 {
+					buf.WriteString(fmt.Sprintf("%d", elem))
+				} else {
+					buf.WriteString(fmt.Sprintf("%d ", elem))
+				}
 			}
 		}
 	}
-	buf.WriteString(" }")
+	buf.WriteByte('}')
 	return buf.String()
 }
 
@@ -86,7 +133,7 @@ func (s *Intset) UnionWith(t *Intset) {
 }
 
 func (s *Intset) Add(x int) {
-	word, bit := x/64, uint64(x%64)
+	word, bit := s.tokenize(x)
 	for word >= s.Len() {
 		s.words = append(s.words, 0)
 	}
@@ -94,6 +141,6 @@ func (s *Intset) Add(x int) {
 }
 
 func (s *Intset) Has(x int) bool {
-	word, bit := x/64, uint64(x%64)
+	word, bit := s.tokenize(x)
 	return word < s.Len() && s.words[word]&(1<<bit) != 0
 }
