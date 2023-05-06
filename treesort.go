@@ -1,13 +1,35 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 )
 
-type tree struct {
+type Tree struct {
 	value       int
-	left, right *tree
+	left, right *Tree
+}
+
+func (t *Tree) String() string {
+	var res bytes.Buffer
+	res.WriteByte('{')
+	var preOrder func(node *Tree)
+	preOrder = func(node *Tree) {
+		if node == nil {
+			return
+		}
+		if res.Len() > len("{") {
+			res.WriteByte(' ')
+		}
+		res.WriteString(fmt.Sprintf("%d", node.value))
+		preOrder(node.left)
+		preOrder(node.right)
+	}
+
+	preOrder(t)
+	res.WriteByte('}')
+	return res.String()
 }
 
 func main() {
@@ -22,37 +44,37 @@ func main() {
 		i++
 	}
 
-	fmt.Printf("Sort: %d", sorting(values))
+	fmt.Printf("Sort: %d", Sorting(values))
 }
 
-func sorting(val []int) []int {
-	var root *tree
+func Sorting(val []int) []int {
+	var root *Tree
 	for _, v := range val {
-		root = add(root, v)
+		root = Add(root, v)
 	}
-	return appendValues(root, val[:0])
+	return AppendValues(root, val[:0])
 }
 
-func appendValues(t *tree, values []int) []int {
+func AppendValues(t *Tree, values []int) []int {
 	if t != nil {
-		values = appendValues(t.left, values)
+		values = AppendValues(t.left, values)
 		values = append(values, t.value)
-		values = appendValues(t.right, values)
+		values = AppendValues(t.right, values)
 	}
 	return values
 }
 
-func add(t *tree, val int) *tree {
+func Add(t *Tree, val int) *Tree {
 	if t == nil {
-		t = new(tree)
+		t = new(Tree)
 		t.value = val
 		return t
 	}
 
 	if val < t.value {
-		t.left = add(t.left, val)
+		t.left = Add(t.left, val)
 	} else {
-		t.right = add(t.right, val)
+		t.right = Add(t.right, val)
 	}
 	return t
 }
