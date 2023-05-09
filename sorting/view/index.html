@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Track</title>
+</head>
+<body>
+<h1>Tracks</h1>
+<table>
+  <tr style='text-align: left'>
+    <th>Album</th>
+    <th>Title</th>
+    <th>Artist</th>
+    <th>Year</th>
+    <th>Length</th>
+  </tr>
+  {{ range .T }}
+  <tr>
+    <td>{{ .Album }}</td>
+    <td>{{ .Title }}</td>
+    <td>{{ .Artist }}</td>
+    <td>{{ .Year }}</td>
+    <td>{{ .Length }}</td>
+  </tr>
+  {{ end }}
+</table>
+<a href="/?s={{ .Type }}">Сортировать</a>
+</body>
+</html>

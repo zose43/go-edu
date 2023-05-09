@@ -2,7 +2,10 @@ package sorting
 
 import (
 	"fmt"
+	html "html/template"
+	"net/http"
 	"os"
+	"sort"
 	"text/tabwriter"
 	"time"
 )
@@ -18,6 +21,7 @@ type Track struct {
 type CustomSort struct {
 	T     []*Track
 	Cless func(x, y *Track) bool
+	Type  string
 }
 
 func (cs *CustomSort) Less(i, j int) bool {
@@ -57,5 +61,40 @@ func PrintTracks(tracks []*Track) {
 	}
 	if err := tw.Flush(); err != nil {
 		panic(tw)
+	}
+}
+
+func PrintTracksHTML(w http.ResponseWriter, r *http.Request) error {
+	const msg = "Can't print HTML %w\n"
+	tr := CustomSort{T: Tracks, Cless: nil, Type: "asc"}
+
+	q := r.URL.Query()
+	switch q.Get("s") {
+	case "asc":
+		tr.Cless = compare()
+		tr.Type = "desc"
+		sort.Sort(&tr)
+	case "desc":
+		tr.Cless = compare()
+		tr.Type = "asc"
+		sort.Sort(sort.Reverse(&tr))
+	}
+
+	t, err := html.New("index.html").ParseFiles("sorting/view/index.html")
+	if err != nil {
+		return fmt.Errorf(msg, err)
+	}
+	if err := t.Execute(w, tr); err != nil {
+		return fmt.Errorf(msg, err)
+	}
+	return nil
+}
+
+func compare() func(x, y *Track) bool {
+	return func(x, y *Track) bool {
+		if x.Year != y.Year {
+			return x.Year < y.Year
+		}
+		return false
 	}
 }
