@@ -9,16 +9,18 @@ type dollars float32
 
 type Database map[string]dollars
 
-func (d Database) show(w http.ResponseWriter, item string) {
-	if price, ok := d[item]; ok {
-		fmt.Fprintf(w, "%s: %s\n", item, price)
-	} else {
+func (d Database) Show(w http.ResponseWriter, r *http.Request) {
+	item := r.URL.Query().Get("i")
+	price, ok := d[item]
+	if !ok {
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "Order: %q not fount\n", item)
+		fmt.Fprintf(w, "Order: %q not found\n", item)
+		return
 	}
+	fmt.Fprintf(w, "%s: %s\n", item, price)
 }
 
-func (d Database) list(w http.ResponseWriter) {
+func (d Database) List(w http.ResponseWriter, r *http.Request) {
 	for item, price := range d {
 		fmt.Fprintf(w, "%s: %s\n", item, price)
 	}
@@ -26,17 +28,4 @@ func (d Database) list(w http.ResponseWriter) {
 
 func (d dollars) String() string {
 	return fmt.Sprintf("$%.2f", d)
-}
-
-func (d Database) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/list":
-		d.list(w)
-	case "/price":
-		qv := r.URL.Query().Get("i")
-		d.show(w, qv)
-	default:
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "Page %s not found\n", r.URL)
-	}
 }
