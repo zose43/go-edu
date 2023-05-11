@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	html "html/template"
 	"net/http"
 	"strconv"
 )
@@ -78,9 +79,29 @@ func (d Database) Show(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d Database) List(w http.ResponseWriter, r *http.Request) {
-	for item, price := range d {
-		fmt.Fprintf(w, "%s: %s\n", item, price)
-	}
+	temp, _ := html.New("html").Parse(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+<table>
+  <tr style='text-align: left'>
+    <th>Order</th>
+    <th>Price</th>
+  </tr>
+  {{ range $k,$v:= . }}
+  <tr>
+    <td>{{ $k }}</td>
+    <td>{{ $v }}</td>
+  </tr>
+  {{ end }}
+</table>
+</body>
+</html>
+`)
+	temp.Execute(w, d)
 }
 
 func (d dollars) String() string {
