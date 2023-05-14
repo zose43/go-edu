@@ -75,10 +75,10 @@ func parsePrimary(lex *lexer) Expr {
 					break
 				}
 				lex.next()
-				if lex.token != ')' {
-					msg := fmt.Sprintf("Got %s, want ')'", lex.describe())
-					panic(lexerPanic(msg))
-				}
+			}
+			if lex.token != ')' {
+				msg := fmt.Sprintf("Got %s, want ')'", lex.describe())
+				panic(lexerPanic(msg))
 			}
 		}
 		lex.next()
@@ -90,7 +90,7 @@ func parsePrimary(lex *lexer) Expr {
 		}
 		lex.next()
 		return literal(f)
-	case ')':
+	case '(':
 		lex.next()
 		x := parseExpr(lex)
 		if lex.token != ')' {
