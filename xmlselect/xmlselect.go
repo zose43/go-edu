@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 func Select(args []string) error {
-	dec := xml.NewDecoder(os.Stdin)
+	xmlDoc, err := os.Open("xmlselect/random.xml")
+	if err != nil {
+		return fmt.Errorf("can't open file %s", err)
+	}
+	dec := xml.NewDecoder(xmlDoc)
 	var stack []string
+
 	for {
 		t, err := dec.Token()
 		if err == io.EOF {
@@ -26,8 +32,7 @@ func Select(args []string) error {
 			stack = stack[:len(stack)-1]
 		case xml.CharData:
 			if containsAll(args, stack) {
-				2
-				fmt.Printf("")
+				fmt.Printf("%s: %s\n", strings.Join(args, " "), item)
 			}
 		}
 	}
@@ -35,10 +40,10 @@ func Select(args []string) error {
 }
 
 func containsAll(args, stack []string) bool {
-	if len(args) == 0 {
-		return true
-	}
 	for len(args) <= len(stack) {
+		if len(args) == 0 {
+			return true
+		}
 		if args[0] == stack[0] {
 			args = args[1:]
 		}
