@@ -1,20 +1,17 @@
 package xmlselect
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 )
 
-func Select(args []string) error {
-	xmlDoc, err := os.Open("xmlselect/random.xml")
-	if err != nil {
-		return fmt.Errorf("can't open file %s", err)
-	}
+func Select(xmlDoc io.Reader, args map[string]map[string]string) error {
+
 	dec := xml.NewDecoder(xmlDoc)
-	var stack []string
+	xmlData := make(map[string][]xml.Attr)
 
 	for {
 		t, err := dec.Token()
@@ -27,27 +24,48 @@ func Select(args []string) error {
 
 		switch item := t.(type) {
 		case xml.StartElement:
-			stack = append(stack, item.Name.Local)
+			xmlData[item.Name.Local] = item.Attr
 		case xml.EndElement:
-			stack = stack[:len(stack)-1]
+			delete(xmlData, item.Name.Local)
 		case xml.CharData:
-			if containsAll(args, stack) {
-				fmt.Printf("%s: %s\n", strings.Join(args, " "), item)
+			if containsAll(xmlData, args) {
+				fmt.Printf("%s: %s\n", strings.Join(createStack(args), " "), bytes.TrimSpace(item))
 			}
 		}
 	}
 	return nil
 }
 
-func containsAll(args, stack []string) bool {
-	for len(args) <= len(stack) {
-		if len(args) == 0 {
+func containsAll(xmlData map[string][]xml.Attr, args map[string]map[string]string) bool {
+	var i int
+	for s, attrs := range xmlData {
+		sel, ok := args[s]
+		if ok {
+			i++
+		}
+		if !compareAttr(attrs, sel) {
+			return false
+		}
+	}
+	return len(args) == i
+}
+
+func compareAttr(find []xml.Attr, source map[string]string) bool {
+	if source == nil {
+		return true
+	}
+	for _, attr := range find {
+		if sel, ok := source[attr.Name.Local]; ok && sel == attr.Value {
 			return true
 		}
-		if args[0] == stack[0] {
-			args = args[1:]
-		}
-		stack = stack[1:]
 	}
 	return false
+}
+
+func createStack(xmlData map[string]map[string]string) []string {
+	stack := make([]string, len(xmlData))
+	for k := range xmlData {
+		stack = append(stack, k)
+	}
+	return stack
 }
