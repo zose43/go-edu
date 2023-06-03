@@ -8,10 +8,17 @@ import (
 	"strings"
 )
 
-func Select(xmlDoc io.Reader, args map[string]map[string]string) error {
+type Element struct {
+	Type     string
+	Attrs    []xml.Attr
+	Children []*Element
+}
 
+func Select(xmlDoc io.Reader, args map[string]map[string]string) (*Element, error) {
 	dec := xml.NewDecoder(xmlDoc)
 	xmlData := make(map[string][]xml.Attr)
+	var stack []*Element
+	var root *Element
 
 	for {
 		t, err := dec.Token()
@@ -19,21 +26,37 @@ func Select(xmlDoc io.Reader, args map[string]map[string]string) error {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("can't parse xml %v\n", err)
+			return nil, fmt.Errorf("can't parse xml %v\n", err)
 		}
 
 		switch item := t.(type) {
 		case xml.StartElement:
 			xmlData[item.Name.Local] = item.Attr
+			el := Element{
+				Type:  item.Name.Local,
+				Attrs: item.Attr,
+			}
+			stack = append(stack, &el)
 		case xml.EndElement:
 			delete(xmlData, item.Name.Local)
+			stack, root = updTree(stack)
 		case xml.CharData:
+			text := bytes.TrimSpace(item)
 			if containsAll(xmlData, args) {
-				fmt.Printf("%s: %s\n", strings.Join(createStack(args), " "), bytes.TrimSpace(item))
+				fmt.Printf("%s: %s\n", strings.Join(elements(args), " "), text)
 			}
 		}
 	}
-	return nil
+	return root, nil
+}
+
+func updTree(stack []*Element) ([]*Element, *Element) {
+	if len(stack) > 1 {
+		parent := stack[len(stack)-2]
+		parent.Children = append(parent.Children, stack[len(stack)-1])
+		return stack[:len(stack)-1], nil
+	}
+	return nil, stack[0]
 }
 
 func containsAll(xmlData map[string][]xml.Attr, args map[string]map[string]string) bool {
@@ -62,10 +85,10 @@ func compareAttr(find []xml.Attr, source map[string]string) bool {
 	return false
 }
 
-func createStack(xmlData map[string]map[string]string) []string {
-	stack := make([]string, len(xmlData))
+func elements(xmlData map[string]map[string]string) []string {
+	nodes := make([]string, len(xmlData))
 	for k := range xmlData {
-		stack = append(stack, k)
+		nodes = append(nodes, k)
 	}
-	return stack
+	return nodes
 }
