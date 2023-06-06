@@ -3,8 +3,10 @@ package ftpserver
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"os/exec"
 	"strings"
 )
 
@@ -20,17 +22,19 @@ func FtpServer(port int) {
 			continue
 		}
 		_, _ = conn.Write([]byte("Welcome to best FTP ever!\n"))
-		handleCommands(conn)
+		go handleCommands(conn)
 	}
 }
 
 func handleCommands(conn net.Conn) {
 	defer func() { _ = conn.Close() }()
 	reader := bufio.NewReader(conn)
+
 	for {
 		cmdLine, err := reader.ReadString('\n')
 		if err != nil {
 			log.Printf("Can't read command %s", err)
+			return
 		}
 
 		cmd, arg, exist := strings.Cut(strings.TrimSpace(cmdLine), " ")
@@ -41,28 +45,30 @@ func handleCommands(conn net.Conn) {
 
 		switch cmd {
 		case "ls":
-			ls(arg)
+			if len(arg) == 0 {
+				arg = "."
+			}
+			execute(cmd, conn, arg)
 		case "cd":
-			cd(arg)
+			// todo realize
+			//execute("bash", conn, "-c", cmdLine)
 		case "get":
-			get(arg)
+			execute("cat", conn, arg)
 		case "close":
-			_, _ = conn.Write([]byte("Bye-bye"))
+			_, _ = conn.Write([]byte("Bye-bye\n"))
 			_ = conn.Close()
 		default:
-			log.Printf("Unknown command %s", cmd)
+			_, _ = conn.Write([]byte(fmt.Sprintf("unknown command %s\n", cmd)))
 		}
 	}
 }
 
-func get(arg string) {
-
-}
-
-func cd(arg string) {
-
-}
-
-func ls(arg string) {
-
+func execute(cmdLine string, conn io.Writer, arg ...string) {
+	cmd := exec.Command(cmdLine, arg...)
+	res, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Print(err)
+		_, _ = conn.Write([]byte(fmt.Sprintf("failure execute %s, please try later\n", cmd)))
+	}
+	_, _ = conn.Write(res)
 }
