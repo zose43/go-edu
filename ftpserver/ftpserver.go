@@ -21,7 +21,7 @@ func FtpServer(port int) {
 			log.Print(err)
 			continue
 		}
-		_, _ = conn.Write([]byte("Welcome to best FTP ever!\n"))
+		fmt.Fprintln(conn, "Welcome to best FTP ever!")
 		go handleCommands(conn)
 	}
 }
@@ -55,10 +55,10 @@ func handleCommands(conn net.Conn) {
 		case "get":
 			execute("cat", conn, arg)
 		case "close":
-			_, _ = conn.Write([]byte("Bye-bye\n"))
+			fmt.Fprintln(conn, "Bye-bye")
 			_ = conn.Close()
 		default:
-			_, _ = conn.Write([]byte(fmt.Sprintf("unknown command %s\n", cmd)))
+			fmt.Fprintf(conn, "unknown command %s\n", cmd)
 		}
 	}
 }
@@ -68,7 +68,7 @@ func execute(cmdLine string, conn io.Writer, arg ...string) {
 	res, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Print(err)
-		_, _ = conn.Write([]byte(fmt.Sprintf("failure execute %s, please try later\n", cmd)))
+		fmt.Fprintf(conn, "failure execute %s, please try later\n", cmd)
 	}
 	_, _ = conn.Write(res)
 }
