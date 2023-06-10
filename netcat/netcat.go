@@ -13,12 +13,18 @@ func Netcat(port int, protocol string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer func() {
-		_ = conn.Close()
+	done := make(chan struct{})
+
+	go func() {
+		_, _ = io.Copy(os.Stdout, conn)
+		log.Println("Done")
+		done <- struct{}{}
 	}()
 
-	go mustCopy(os.Stdout, conn)
 	mustCopy(conn, os.Stdin)
+	_ = conn.(*net.TCPConn).CloseWrite()
+
+	<-done
 }
 
 func mustCopy(dst io.Writer, src io.Reader) {
