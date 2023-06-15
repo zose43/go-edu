@@ -1,5 +1,7 @@
 package thumbnail
 
+// image scale to 128 x 128
+
 import (
 	"fmt"
 	"image"
@@ -9,7 +11,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
+
+type Thumb struct {
+	ThumbFile string
+	Err       error
+}
 
 func ImageFile(infile string) (string, error) {
 	ext := filepath.Ext(infile)
@@ -70,10 +78,33 @@ func Image(src image.Image) image.Image {
 	return dst
 }
 
-func Handle(filenames []string) {
-	for _, s := range filenames {
-		if _, err := ImageFile(s); err != nil {
-			log.Print(err)
-		}
+func Handle(filenames []string) int64 {
+	size := make(chan int64)
+	var wg sync.WaitGroup
+	for _, f := range filenames {
+		wg.Add(1)
+		go func(f string) {
+			defer wg.Done()
+			thumb, err := ImageFile(f)
+
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			stat, _ := os.Stat(thumb)
+			size <- stat.Size()
+		}(f)
 	}
+
+	go func() {
+		wg.Wait()
+		close(size)
+	}()
+
+	var total int64
+	for v := range size {
+		total += v
+	}
+	return total
 }
