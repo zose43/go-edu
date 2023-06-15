@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,9 +18,17 @@ func echo(c net.Conn, phrase string, dur time.Duration) {
 }
 
 func Handle(conn net.Conn) {
-	defer func() { _ = conn.Close() }()
+	var wg sync.WaitGroup
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
-		go echo(conn, scanner.Text(), 1*time.Second)
+		wg.Add(1)
+		go func(phrase string) {
+			defer wg.Done()
+			echo(conn, phrase, 1*time.Second)
+		}(scanner.Text())
 	}
+	defer func() {
+		wg.Wait()
+		_ = conn.Close()
+	}()
 }
