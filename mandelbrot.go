@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/cmplx"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -16,16 +17,26 @@ func main() {
 		xmin, ymin, xmax, ymax = -2, -2, +2, +2
 		width, height          = 1024, 1024
 	)
+	var wg sync.WaitGroup
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	for py := 0; py < height; py++ {
 		y := float64(py)/height*(ymax-ymin) + ymin
 		for px := 0; px < width; px++ {
-			x := float64(px)/width*(xmax-xmin) + xmin
-			z := complex(x, y)
-			img.Set(px, py, mandelbrot(z))
+			wg.Add(1)
+			go func(px, py int, y float64) {
+				x := float64(px)/width*(xmax-xmin) + xmin
+				z := complex(x, y)
+				img.Set(px, py, mandelbrot(z))
+			}(px, py, y)
 		}
 	}
-	fname := fmt.Sprintf("fractal_%d.png", time.Now().UnixNano())
+
+	go func() {
+		wg.Wait()
+	}()
+
+	fname := fmt.Sprintf("files/fractal_%d.png", time.Now().UnixNano())
+
 	f, err := os.Create(fname)
 	if err != nil {
 		log.Fatal(err)
