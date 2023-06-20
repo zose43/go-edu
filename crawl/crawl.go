@@ -69,17 +69,28 @@ func findElements(n *html.Node, f func(node *html.Node)) {
 	}
 }
 
-func Run() {
+func Run(depth int) {
 	worklist := make(chan []string)
 	seen := make(map[string]bool)
 	main := os.Args[1]
 	var num int
+	nextLevel := -1
+	currentLevel := 1
 
 	num++
-	go func() { worklist <- os.Args[1:] }()
+	go func() { worklist <- os.Args[1:2] }()
 
 	for ; num > 0; num-- {
 		list := <-worklist
+		if depth == 0 {
+			break
+		}
+		nextLevel += len(list)
+		if currentLevel == 0 {
+			depth--
+			currentLevel = nextLevel
+		}
+		currentLevel--
 		for _, link := range list {
 			if !seen[link] {
 				seen[link] = true
@@ -90,5 +101,5 @@ func Run() {
 			}
 		}
 	}
-	println("Done")
+	fmt.Printf("Done %d links", len(seen))
 }
