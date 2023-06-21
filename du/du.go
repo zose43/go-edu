@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var sema = make(chan struct{}, 10)
+
 func walkDir(dir string, filesize chan<- int64, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for _, entry := range dirents(dir) {
@@ -26,7 +28,8 @@ func walkDir(dir string, filesize chan<- int64, wg *sync.WaitGroup) {
 }
 
 func dirents(dir string) []os.DirEntry {
-	//sema := make(chan struct{}, 5)
+	sema <- struct{}{}
+	defer func() { <-sema }()
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "can't read %s %v\n", dir, err)
