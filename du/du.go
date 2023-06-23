@@ -9,6 +9,7 @@ import (
 )
 
 var sema = make(chan struct{}, 10)
+var done = make(chan struct{})
 
 type PathInfo struct {
 	Size      int64
@@ -18,8 +19,12 @@ type PathInfo struct {
 
 func (pi *PathInfo) walkDir(dir string, filesize chan<- *PathInfo, wg *sync.WaitGroup) {
 	defer wg.Done()
+	if cancelled() {
+		return
+	}
 	for _, entry := range dirents(dir) {
 		if entry.IsDir() {
+
 			wg.Add(1)
 			subdir := filepath.Join(dir, entry.Name())
 			go pi.walkDir(subdir, filesize, wg)
@@ -36,7 +41,11 @@ func (pi *PathInfo) walkDir(dir string, filesize chan<- *PathInfo, wg *sync.Wait
 }
 
 func dirents(dir string) []os.DirEntry {
-	sema <- struct{}{}
+	select {
+	case sema <- struct{}{}:
+	case <-done:
+		return nil
+	}
 	defer func() { <-sema }()
 	entries, err := os.ReadDir(dir)
 
@@ -58,6 +67,11 @@ func ScanDirs(roots []*PathInfo, verbose bool) {
 	}
 
 	go func() {
+		_, _ = os.Stdin.Read(make([]byte, 1))
+		done <- struct{}{}
+	}()
+
+	go func() {
 		wg.Wait()
 		close(filesize)
 	}()
@@ -70,6 +84,10 @@ func ScanDirs(roots []*PathInfo, verbose bool) {
 loop:
 	for {
 		select {
+		case <-done:
+			for range filesize {
+			}
+			return
 		case <-ticker:
 			printDiskUsage(roots, start)
 		case _, ok := <-filesize:
@@ -89,5 +107,14 @@ func printDiskUsage(roots []*PathInfo, start time.Time) {
 			root.FileCount,
 			float64(root.Size)/1e9,
 			time.Since(start).Milliseconds())
+	}
+}
+
+func cancelled() bool {
+	select {
+	case <-done:
+		return true
+	default:
+		return false
 	}
 }
