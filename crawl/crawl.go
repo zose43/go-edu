@@ -1,20 +1,22 @@
 package crawl
 
 import (
+	"context"
 	"fmt"
 	"golang.org/x/net/html"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 var tokens = make(chan struct{}, 20)
 
-func Crawl(url, mainUrl string) []string {
+func Crawl(ctx context.Context, url, mainUrl string) []string {
 	fmt.Println(url)
 	tokens <- struct{}{}
-	list, err := extract(url, mainUrl)
+	list, err := extract(ctx, url, mainUrl)
 	<-tokens
 	if err != nil {
 		log.Print(err)
@@ -22,8 +24,12 @@ func Crawl(url, mainUrl string) []string {
 	return list
 }
 
-func extract(source, mainUrl string) ([]string, error) {
-	resp, err := http.Get(source)
+func extract(ctx context.Context, source, mainUrl string) ([]string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", source, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -69,20 +75,39 @@ func findElements(n *html.Node, f func(node *html.Node)) {
 	}
 }
 
-func Run(depth int) {
-	worklist := make(chan []string)
-	seen := make(map[string]bool)
-	main := os.Args[1]
-	var num int
-	nextLevel := -1
-	currentLevel := 1
+func Run(depth int, main string) {
+	var (
+		worklist       = make(chan []string)
+		seen           = make(map[string]bool)
+		num, interrupt int
+		nextLevel      = -1
+		currentLevel   = 1
+		wg             = sync.WaitGroup{}
+	)
 
 	num++
 	go func() { worklist <- os.Args[1:2] }()
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	go func() {
+		_, _ = os.Stdout.Read(make([]byte, 1))
+		cancelFunc()
+		interrupt = 1
+	}()
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			log.Printf("stop crawler: %v", ctx.Err())
+			for range worklist {
+			}
+		}
+	}()
+
 	for ; num > 0; num-- {
 		list := <-worklist
-		if depth == 0 {
+		if depth == 0 || interrupt == 1 {
 			break
 		}
 		nextLevel += len(list)
@@ -95,11 +120,15 @@ func Run(depth int) {
 			if !seen[link] {
 				seen[link] = true
 				num++
+				wg.Add(1)
 				go func(u string) {
-					worklist <- Crawl(u, main)
+					defer wg.Done()
+					worklist <- Crawl(ctx, u, main)
 				}(link)
 			}
 		}
 	}
+
+	wg.Wait()
 	fmt.Printf("Done %d links", len(seen))
 }
