@@ -2,7 +2,6 @@ package chat
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"log"
 	"net"
@@ -43,16 +42,13 @@ func Run(port int) {
 }
 
 func handleConn(conn net.Conn) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer func() {
-		_ = conn.Close()
-		cancel()
-	}()
+	defer func() { _ = conn.Close() }()
 	p := new(person)
-	ch := make(chan string)
-	p.ch = ch
+	outer := make(chan string, 10)
+	self := make(chan string)
+	p.ch = outer
 
-	go clientWriter(conn, ch)
+	go clientWriter(conn, outer)
 
 	_, _ = fmt.Fprint(conn, "Write your name,pls\n")
 	name, err := bufio.NewReader(conn).ReadString('\n')
@@ -62,28 +58,39 @@ func handleConn(conn net.Conn) {
 	}
 	p.name = strings.TrimSpace(name)
 
-loop:
-	for {
-		select {
-		case <-ctx.Done():
-			break loop
-		default:
-			ch <- "You are: " + p.name
-			entering <- p
-			messages <- "Connected " + p.name
-			scan := bufio.NewScanner(conn)
-			for scan.Scan() {
-				text := fmt.Sprintf("%s: %s", p.name, strings.TrimSpace(scan.Text()))
-				messages <- text
+	outer <- "You are: " + p.name
+	entering <- p
+	messages <- "Connected " + p.name
+
+	go func() {
+		dur := 3 * time.Minute
+		tick := time.NewTicker(dur)
+		for {
+			select {
+			case <-tick.C:
+				_, _ = fmt.Fprint(conn, "Connection close(timeout)")
+				_ = conn.Close()
+				return
+			case <-self:
+				tick.Reset(dur)
 			}
 		}
+	}()
+
+	scan := bufio.NewScanner(conn)
+	for scan.Scan() {
+		text := fmt.Sprintf("%s: %s", p.name, strings.TrimSpace(scan.Text()))
+		messages <- text
+		self <- text
 	}
+
+	close(self)
 	leaving <- p
 	messages <- "Bye-bye " + p.name
 }
 
-func clientWriter(conn net.Conn, ch chan string) {
-	for msg := range ch {
+func clientWriter(conn net.Conn, outer chan string) {
+	for msg := range outer {
 		_, _ = fmt.Fprintf(conn, "%s\n", msg)
 	}
 }
