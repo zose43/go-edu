@@ -17,9 +17,9 @@ type person struct {
 }
 
 var (
-	entering = make(chan *person)
-	leaving  = make(chan *person)
-	messages = make(chan string)
+	entering = make(chan *person, 5)
+	leaving  = make(chan *person, 5)
+	messages = make(chan string, 30)
 )
 
 func Run(port int) {
@@ -99,10 +99,6 @@ func broadcaster() {
 	clients := make(map[*person]bool)
 	for {
 		select {
-		case msg := <-messages:
-			for prs := range clients {
-				prs.ch <- msg
-			}
 		case prs := <-entering:
 			clients[prs] = true
 			prs.ch <- fmt.Sprintf("Online(%d):", len(clients))
@@ -112,6 +108,11 @@ func broadcaster() {
 		case prs := <-leaving:
 			delete(clients, prs)
 			close(prs.ch)
+		default:
+			msg := <-messages
+			for prs := range clients {
+				prs.ch <- msg
+			}
 		}
 	}
 }
