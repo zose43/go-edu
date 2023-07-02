@@ -1,49 +1,36 @@
 package bank
 
+import "sync"
+
 var (
-	deposit = make(chan int)
-	balance = make(chan int)
-	payoff  = make(chan *withdraw)
+	balance int
+	mu      sync.Mutex
 )
 
-type withdraw struct {
-	amount int
-	ch     chan<- bool
+func Deposit(amount int) {
+	defer mu.Unlock()
+	mu.Lock()
+	balance += amount
+
 }
 
-func Deposit(amount int) {
-	deposit <- amount
+func deposit(amount int) {
+	balance += amount
 }
 
 func Balance() int {
-	return <-balance
+	defer mu.Unlock()
+	mu.Lock()
+	return balance
 }
 
 func WithDraw(amount int) bool {
-	ch := make(chan bool)
-	wd := withdraw{ch: ch, amount: amount}
-	payoff <- &wd
-	return <-ch
-}
-
-func teller() {
-	var balances int
-	for {
-		select {
-		case amount := <-deposit:
-			balances += amount
-		case wd := <-payoff:
-			if balances >= wd.amount {
-				balances -= wd.amount
-				wd.ch <- true
-			} else {
-				wd.ch <- false
-			}
-		case balance <- balances:
-		}
+	defer mu.Unlock()
+	mu.Lock()
+	deposit(-amount)
+	if balance < 0 {
+		deposit(amount)
+		return false
 	}
-}
-
-func init() {
-	go teller()
+	return true
 }
