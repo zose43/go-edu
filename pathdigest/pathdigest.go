@@ -19,14 +19,27 @@ type result struct {
 func MD5All(root string) (map[string][md5.Size]byte, error) {
 	m := make(map[string][md5.Size]byte)
 	done := make(chan struct{})
+	ch := make(chan result)
 	defer close(done)
 
-	c, err := sumFiles(done, root)
-	if err := <-err; err != nil {
-		return nil, err
+	path, err := walkDir(done, root)
+
+	const workers = 20
+	var wg = sync.WaitGroup{}
+	wg.Add(workers)
+	for i := 0; i < workers; i++ {
+		go func() {
+			digest(done, path, ch)
+			wg.Done()
+		}()
 	}
 
-	for res := range c {
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	for res := range ch {
 		if res.err != nil {
 			log.Print(res.err)
 			continue
@@ -34,14 +47,17 @@ func MD5All(root string) (map[string][md5.Size]byte, error) {
 		m[res.path] = res.sum
 	}
 
+	if err := <-err; err != nil {
+		return nil, err
+	}
 	return m, nil
 }
 
-func sumFiles(done <-chan struct{}, root string) (<-chan result, <-chan error) {
-	ch := make(chan result)
+func walkDir(done <-chan struct{}, root string) (<-chan string, <-chan error) {
+	ch := make(chan string)
 	errc := make(chan error, 1)
 	go func() {
-		var wg sync.WaitGroup
+		defer close(ch)
 		err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -49,30 +65,25 @@ func sumFiles(done <-chan struct{}, root string) (<-chan result, <-chan error) {
 			if d.IsDir() {
 				return nil
 			}
-
-			wg.Add(1)
-			go func() {
-				data, err := os.ReadFile(path)
-				select {
-				case ch <- result{path: path, sum: md5.Sum(data), err: err}:
-				case <-done:
-				}
-				wg.Done()
-			}()
-
 			select {
+			case ch <- path:
 			case <-done:
 				return errors.New("cancelling")
-			default:
-				return nil
 			}
+			return nil
 		})
-
-		go func() {
-			wg.Wait()
-			close(ch)
-		}()
 		errc <- err
 	}()
 	return ch, errc
+}
+
+func digest(done <-chan struct{}, path <-chan string, ch chan<- result) {
+	for p := range path {
+		data, err := os.ReadFile(p)
+		select {
+		case <-done:
+			return
+		case ch <- result{sum: md5.Sum(data), path: p, err: err}:
+		}
+	}
 }
